@@ -1,6 +1,7 @@
 import { SqlClient } from "@effect/sql"
 import * as Pg from "@effect/sql-drizzle/Pg"
 import { assert, describe, it } from "@effect/vitest"
+import { desc } from "drizzle-orm"
 import * as D from "drizzle-orm/pg-core"
 import { Effect, Layer } from "effect"
 import { PgContainer } from "./utils-pg.js"
@@ -26,6 +27,9 @@ describe.sequential("Pg", () => {
       yield* db.insert(users).values({ name: "Alice", snakeCase: "alice" })
       const results = yield* db.select().from(users)
       assert.deepStrictEqual(results, [{ id: 1, name: "Alice", snakeCase: "alice" }])
+      yield* db.insert(users).values({ name: "Queen", snakeCase: "queen" })
+      const results2 = yield* db.select().from(users).orderBy(desc(users.id)).limit(1)
+      assert.deepStrictEqual(results2, [{ id: 2, name: "Queen", snakeCase: "queen" }])
     }).pipe(
       Effect.provide(DrizzlePgLive),
       Effect.catchTag("ContainerError", () => Effect.void)
@@ -42,6 +46,9 @@ describe.sequential("Pg", () => {
       yield* db.insert(users).values({ name: "Alice", snakeCase: "alice" })
       const results = yield* db.query.users.findMany()
       assert.deepStrictEqual(results, [{ id: 1, name: "Alice", snakeCase: "alice" }])
+      yield* db.insert(users).values({ name: "Queen", snakeCase: "queen" })
+      const user = yield* db.query.users.findFirst({ orderBy: [desc(users.id)] })
+      assert.deepStrictEqual(user, { id: 2, name: "Queen", snakeCase: "queen" })
     }).pipe(
       Effect.provide(ORM.Client),
       Effect.catchTag("ContainerError", () => Effect.void)
@@ -54,9 +61,9 @@ describe.sequential("Pg", () => {
       const sql = yield* SqlClient.SqlClient
       const db = yield* Pg.PgDrizzle
       yield* sql`CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT NOT NULL, snake_case TEXT NOT NULL)`
-      yield* Effect.promise(() => db.insert(users).values({ name: "Alice", snakeCase: "snake" }))
+      yield* Effect.promise(() => db.insert(users).values({ name: "Alice", snakeCase: "alice" }))
       const results = yield* Effect.promise(() => db.select().from(users))
-      assert.deepStrictEqual(results, [{ id: 1, name: "Alice", snakeCase: "snake" }])
+      assert.deepStrictEqual(results, [{ id: 1, name: "Alice", snakeCase: "alice" }])
     }).pipe(
       Effect.provide(DrizzlePgLive),
       Effect.catchTag("ContainerError", () => Effect.void)
