@@ -41,7 +41,14 @@ describe("Kysely", () => {
 
       const inserted = yield* db.insertInto("users").values({ userName: "Alice" }).returningAll()
       const selected = yield* db.selectFrom("users").selectAll()
-      const updated = yield* db.updateTable("users").set({ userName: "Bob", nickname: "The Bobinator" }).returningAll()
+      const insertedMore = yield* db.insertInto("users").values({ userName: "Queen" }).returningAll()
+      const selectedMore = yield* db.selectFrom("users").selectAll()
+      const selectedOne = yield* db.selectFrom("users").selectAll().where("id", "=", 1)
+      const selectedFirst = yield* db.selectFrom("users").selectAll().limit(1).orderBy("id", "asc")
+      const selectedLast = yield* db.selectFrom("users").selectAll().limit(1).orderBy("id", "desc")
+      const updated = yield* db.updateTable("users").set({ userName: "Bob", nickname: "The Bobinator" })
+        .where("id", "=", 1).returningAll()
+      const deletedOne = yield* db.deleteFrom("users").where("id", "=", 1).returningAll()
       const deleted = yield* db.deleteFrom("users").returningAll()
 
       assert.equal(
@@ -50,7 +57,16 @@ describe("Kysely", () => {
       )
       assert.deepStrictEqual(inserted, [{ id: 1, userName: "Alice", nickname: null }])
       assert.deepStrictEqual(selected, [{ id: 1, userName: "Alice", nickname: null }])
+      assert.deepStrictEqual(insertedMore, [{ id: 2, userName: "Queen", nickname: null }])
+      assert.deepStrictEqual(selectedMore, [
+        { id: 1, userName: "Alice", nickname: null },
+        { id: 2, userName: "Queen", nickname: null }
+      ])
+      assert.deepStrictEqual(selectedOne, [{ id: 1, userName: "Alice", nickname: null }])
+      assert.deepStrictEqual(selectedFirst, [{ id: 1, userName: "Alice", nickname: null }])
+      assert.deepStrictEqual(selectedLast, [{ id: 2, userName: "Queen", nickname: null }])
       assert.deepStrictEqual(updated, [{ id: 1, userName: "Bob", nickname: "The Bobinator" }])
-      assert.deepStrictEqual(deleted, [{ id: 1, userName: "Bob", nickname: "The Bobinator" }])
+      assert.deepStrictEqual(deletedOne, [{ id: 1, userName: "Bob", nickname: "The Bobinator" }])
+      assert.deepStrictEqual(deleted, [{ id: 2, userName: "Queen", nickname: null }])
     }).pipe(Effect.provide(KyselyDBLive)))
 })
